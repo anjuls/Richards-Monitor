@@ -1,0 +1,65 @@
+WITH waiters as (select l.inst_id
+                ,       l.id1
+                ,       l.id2
+                ,       l.sid
+                ,       l.type
+                ,       l.lmode
+                ,       l.request
+                from gv$lock l
+                ,    gv$session s
+                where l.inst_id = s.inst_id
+                 and l.sid = s.sid
+                 and s.wait_time_micro > 30000000
+                 and l.request > 0)
+,    holders as (select inst_id
+                 ,      id1
+                 ,      id2
+                 ,      sid
+                 ,      type
+                 ,      lmode
+                 ,      request
+                 from gv$lock 
+                 where lmode > 0)
+SELECT distinct 'Blocker' state
+,      h.inst_id instance
+,      h.sid
+,      nvl(s.username,'internal') username
+,      h.type || ' - ' || DECODE(h.type, 'BL', 'Buffer hash table instance lock', 'CF', ' Control file schema global enqueue lock', 'CI', 'Cross-instance function invocation instance lock', 'CS', 'Control file schema global enqueue lock', 'CU', 'Cursor bind lock', 'DF', 'Data file instance lock', 'DL', 'Direct loader parallel index create', 'DM', 'Mount/startup db primary/secondary instance lock', 'DR', 'Distributed recovery process lock', 'DX', 'Distributed transaction entry lock', 'FI', 'SGA open-file information lock', 'FS', 'File set lock', 'HW', 'Space management operations on a specific segment lock', 'IN', 'Instance number lock', 'IR', 'Instance recovery serialization global enqueue lock', 'IS', 'Instance state lock', 'IV', 'Library cache invalidation instance lock', 'JQ', 'Job queue lock', 'KK', 'Thread kick lock', 'MB', 'Master buffer hash table instance lock', 'MM', 'Mount definition gloabal enqueue lock', 'MR', 'Media recovery lock', 'PF', 'Password file lock', 'PI', 'Parallel operation lock', 'PR', 'Process startup lock', 'PS', 'Parallel operation lock', 'RE', 'USE_ROW_ENQUEUE enforcement lock', 'RT', 'Redo thread global enqueue lock', 'RW', 'Row wait enqueue lock', 'SC', 'System commit number instance lock', 'SH', 'System commit number high water mark enqueue lock', 'SM', 'SMON lock', 'SN', 'Sequence number instance lock', 'SQ', 'Sequence number enqueue lock', 'SS', 'Sort segment lock', 'ST', 'Space transaction enqueue lock', 'SV', 'Sequence number value lock', 'TA', 'Generic enqueue lock', 'TD', 'DDL enqueue lock', 'TE', 'Extend-segment enqueue lock', 'TM', 'DML enqueue lock', 'TT', 'Temporary table enqueue lock', 'TX', 'Transaction enqueue lock', 'UL', 'User supplied lock', 'UN', 'User name lock', 'US', 'Undo segment DDL lock', 'WL', 'Being-written redo log instance lock', 'WS', 'Write-atomic-log-switch global enqueue lock', 'TS', DECODE(h.id2, 0, 'Temporary segment enqueue lock (ID2=0)', 'New block allocation enqueue lock (ID2=1)'), 'LA', 'Library cache lock instance lock (A=namespace)', 'LB', 'Library cache lock instance lock (B=namespace)', 'LC', 'Library cache lock instance lock (C=namespace)', 'LD', 'Library cache lock instance lock (D=namespace)', 'LE', 'Library cache lock instance lock (E=namespace)', 'LF', 'Library cache lock instance lock (F=namespace)', 'LG', 'Library cache lock instance lock (G=namespace)', 'LH', 'Library cache lock instance lock (H=namespace)', 'LI', 'Library cache lock instance lock (I=namespace)', 'LJ', 'Library cache lock instance lock (J=namespace)', 'LK', 'Library cache lock instance lock (K=namespace)', 'LL', 'Library cache lock instance lock (L=namespace)', 'LM', 'Library cache lock instance lock (M=namespace)', 'LN', 'Library cache lock instance lock (N=namespace)', 'LO', 'Library cache lock instance lock (O=namespace)', 'LP', 'Library cache lock instance lock (P=namespace)', 'LS', 'Log start/log switch enqueue lock', 'PA', 'Library cache pin instance lock (A=namespace)', 'PB', 'Library cache pin instance lock (B=namespace)', 'PC', 'Library cache pin instance lock (C=namespace)', 'PD', 'Library cache pin instance lock (D=namespace)', 'PE', 'Library cache pin instance lock (E=namespace)', 'PF', 'Library cache pin instance lock (F=namespace)', 'PG', 'Library cache pin instance lock (G=namespace)', 'PH', 'Library cache pin instance lock (H=namespace)', 'PI', 'Library cache pin instance lock (I=namespace)', 'PJ', 'Library cache pin instance lock (J=namespace)', 'PL', 'Library cache pin instance lock (K=namespace)', 'PK', 'Library cache pin instance lock (L=namespace)', 'PM', 'Library cache pin instance lock (M=namespace)', 'PN', 'Library cache pin instance lock (N=namespace)', 'PO', 'Library cache pin instance lock (O=namespace)', 'PP', 'Library cache pin instance lock (P=namespace)', 'PQ', 'Library cache pin instance lock (Q=namespace)', 'PR', 'Library cache pin instance lock (R=namespace)', 'PS', 'Library cache pin instance lock (S=namespace)', 'PT', 'Library cache pin instance lock (T=namespace)', 'PU', 'Library cache pin instance lock (U=namespace)', 'PV', 'Library cache pin instance lock (V=namespace)', 'PW', 'Library cache pin instance lock (W=namespace)', 'PX', 'Library cache pin instance lock (X=namespace)', 'PY', 'Library cache pin instance lock (Y=namespace)', 'PZ', 'Library cache pin instance lock (Z=namespace)', 'QA', 'Row cache instance lock (A=cache)', 'QB', 'Row cache instance lock (B=cache)', 'QC', 'Row cache instance lock (C=cache)', 'QD', 'Row cache instance lock (D=cache)', 'QE', 'Row cache instance lock (E=cache)', 'QF', 'Row cache instance lock (F=cache)', 'QG', 'Row cache instance lock (G=cache)', 'QH', 'Row cache instance lock (H=cache)', 'QI', 'Row cache instance lock (I=cache)', 'QJ', 'Row cache instance lock (J=cache)', 'QL', 'Row cache instance lock (K=cache)', 'QK', 'Row cache instance lock (L=cache)', 'QM', 'Row cache instance lock (M=cache)', 'QN', 'Row cache instance lock (N=cache)', 'QO', 'Row cache instance lock (O=cache)', 'QP', 'Row cache instance lock (P=cache)', 'QQ', 'Row cache instance lock (Q=cache)', 'QR', 'Row cache instance lock (R=cache)', 'QS', 'Row cache instance lock (S=cache)', 'QT', 'Row cache instance lock (T=cache)', 'QU', 'Row cache instance lock (U=cache)', 'QV', 'Row cache instance lock (V=cache)', 'QW', 'Row cache instance lock (W=cache)', 'QX', 'Row cache instance lock (X=cache)', 'QY', 'Row cache instance lock (Y=cache)', 'QZ', 'Row cache instance lock (Z=cache)', '????' ) "Lock Type"
+,      h.id1
+,      h.id2
+,      DECODE(h.lmode, 1, 'No Lock', 2, 'Row Share', 3, 'Row Exclusive', 4, 'Share', 5, 'Share Row Exclusive', 6, 'Exclusive', 'NONE' ) lmode
+,      DECODE(h.request, 1, 'No Lock', 2, 'Row Share', 3, 'Row Exclusive', 4, 'Share', 5, 'Share Row Exclusive', 6, 'Exclusive', 'NONE' ) request
+,      s.sql_id
+,      sql.sql_text
+FROM gv$session s
+,    waiters w
+,    holders h
+,    gv$sql sql
+WHERE h.id1= w.id1
+  AND h.id2 = w.id2
+  AND s.inst_id = h.inst_id
+  AND s.sid = h.sid
+  AND sql.inst_id (+) = s.inst_id
+  AND sql.sql_id (+) = s.sql_id
+UNION ALL
+  SELECT 'Waiter' state
+,      w.inst_id instance
+,      w.sid
+,      nvl(s.username,'internal') username
+,      w.type || ' - ' || DECODE(w.type, 'BL', 'Buffer hash table instance lock', 'CF', ' Control file schema global enqueue lock', 'CI', 'Cross-instance function invocation instance lock', 'CS', 'Control file schema global enqueue lock', 'CU', 'Cursor bind lock', 'DF', 'Data file instance lock', 'DL', 'Direct loader parallel index create', 'DM', 'Mount/startup db primary/secondary instance lock', 'DR', 'Distributed recovery process lock', 'DX', 'Distributed transaction entry lock', 'FI', 'SGA open-file information lock', 'FS', 'File set lock', 'HW', 'Space management operations on a specific segment lock', 'IN', 'Instance number lock', 'IR', 'Instance recovery serialization global enqueue lock', 'IS', 'Instance state lock', 'IV', 'Library cache invalidation instance lock', 'JQ', 'Job queue lock', 'KK', 'Thread kick lock', 'MB', 'Master buffer hash table instance lock', 'MM', 'Mount definition gloabal enqueue lock', 'MR', 'Media recovery lock', 'PF', 'Password file lock', 'PI', 'Parallel operation lock', 'PR', 'Process startup lock', 'PS', 'Parallel operation lock', 'RE', 'USE_ROW_ENQUEUE enforcement lock', 'RT', 'Redo thread global enqueue lock', 'RW', 'Row wait enqueue lock', 'SC', 'System commit number instance lock', 'SH', 'System commit number high water mark enqueue lock', 'SM', 'SMON lock', 'SN', 'Sequence number instance lock', 'SQ', 'Sequence number enqueue lock', 'SS', 'Sort segment lock', 'ST', 'Space transaction enqueue lock', 'SV', 'Sequence number value lock', 'TA', 'Generic enqueue lock', 'TD', 'DDL enqueue lock', 'TE', 'Extend-segment enqueue lock', 'TM', 'DML enqueue lock', 'TT', 'Temporary table enqueue lock', 'TX', 'Transaction enqueue lock', 'UL', 'User supplied lock', 'UN', 'User name lock', 'US', 'Undo segment DDL lock', 'WL', 'Being-written redo log instance lock', 'WS', 'Write-atomic-log-switch global enqueue lock', 'TS', DECODE(w.id2, 0, 'Temporary segment enqueue lock (ID2=0)', 'New block allocation enqueue lock (ID2=1)'), 'LA', 'Library cache lock instance lock (A=namespace)', 'LB', 'Library cache lock instance lock (B=namespace)', 'LC', 'Library cache lock instance lock (C=namespace)', 'LD', 'Library cache lock instance lock (D=namespace)', 'LE', 'Library cache lock instance lock (E=namespace)', 'LF', 'Library cache lock instance lock (F=namespace)', 'LG', 'Library cache lock instance lock (G=namespace)', 'LH', 'Library cache lock instance lock (H=namespace)', 'LI', 'Library cache lock instance lock (I=namespace)', 'LJ', 'Library cache lock instance lock (J=namespace)', 'LK', 'Library cache lock instance lock (K=namespace)', 'LL', 'Library cache lock instance lock (L=namespace)', 'LM', 'Library cache lock instance lock (M=namespace)', 'LN', 'Library cache lock instance lock (N=namespace)', 'LO', 'Library cache lock instance lock (O=namespace)', 'LP', 'Library cache lock instance lock (P=namespace)', 'LS', 'Log start/log switch enqueue lock', 'PA', 'Library cache pin instance lock (A=namespace)', 'PB', 'Library cache pin instance lock (B=namespace)', 'PC', 'Library cache pin instance lock (C=namespace)', 'PD', 'Library cache pin instance lock (D=namespace)', 'PE', 'Library cache pin instance lock (E=namespace)', 'PF', 'Library cache pin instance lock (F=namespace)', 'PG', 'Library cache pin instance lock (G=namespace)', 'PH', 'Library cache pin instance lock (H=namespace)', 'PI', 'Library cache pin instance lock (I=namespace)', 'PJ', 'Library cache pin instance lock (J=namespace)', 'PL', 'Library cache pin instance lock (K=namespace)', 'PK', 'Library cache pin instance lock (L=namespace)', 'PM', 'Library cache pin instance lock (M=namespace)', 'PN', 'Library cache pin instance lock (N=namespace)', 'PO', 'Library cache pin instance lock (O=namespace)', 'PP', 'Library cache pin instance lock (P=namespace)', 'PQ', 'Library cache pin instance lock (Q=namespace)', 'PR', 'Library cache pin instance lock (R=namespace)', 'PS', 'Library cache pin instance lock (S=namespace)', 'PT', 'Library cache pin instance lock (T=namespace)', 'PU', 'Library cache pin instance lock (U=namespace)', 'PV', 'Library cache pin instance lock (V=namespace)', 'PW', 'Library cache pin instance lock (W=namespace)', 'PX', 'Library cache pin instance lock (X=namespace)', 'PY', 'Library cache pin instance lock (Y=namespace)', 'PZ', 'Library cache pin instance lock (Z=namespace)', 'QA', 'Row cache instance lock (A=cache)', 'QB', 'Row cache instance lock (B=cache)', 'QC', 'Row cache instance lock (C=cache)', 'QD', 'Row cache instance lock (D=cache)', 'QE', 'Row cache instance lock (E=cache)', 'QF', 'Row cache instance lock (F=cache)', 'QG', 'Row cache instance lock (G=cache)', 'QH', 'Row cache instance lock (H=cache)', 'QI', 'Row cache instance lock (I=cache)', 'QJ', 'Row cache instance lock (J=cache)', 'QL', 'Row cache instance lock (K=cache)', 'QK', 'Row cache instance lock (L=cache)', 'QM', 'Row cache instance lock (M=cache)', 'QN', 'Row cache instance lock (N=cache)', 'QO', 'Row cache instance lock (O=cache)', 'QP', 'Row cache instance lock (P=cache)', 'QQ', 'Row cache instance lock (Q=cache)', 'QR', 'Row cache instance lock (R=cache)', 'QS', 'Row cache instance lock (S=cache)', 'QT', 'Row cache instance lock (T=cache)', 'QU', 'Row cache instance lock (U=cache)', 'QV', 'Row cache instance lock (V=cache)', 'QW', 'Row cache instance lock (W=cache)', 'QX', 'Row cache instance lock (X=cache)', 'QY', 'Row cache instance lock (Y=cache)', 'QZ', 'Row cache instance lock (Z=cache)', '????' ) "Lock Type"
+,      w.id1
+,      w.id2
+,      DECODE(w.lmode, 1, 'No Lock', 2, 'Row Share', 3, 'Row Exclusive', 4, 'Share', 5, 'Share Row Exclusive', 6, 'Exclusive', 'NONE' ) lmode
+,      DECODE(w.request, 1, 'No Lock', 2, 'Row Share', 3, 'Row Exclusive', 4, 'Share', 5, 'Share Row Exclusive', 6, 'Exclusive', 'NONE' ) request
+,      s.sql_id
+,      sql.sql_text
+FROM gv$session s  
+,    waiters w
+,    gv$sql sql
+WHERE s.inst_id = w.inst_id
+  AND s.sid = w.sid
+  AND sql.inst_id (+) = s.inst_id
+  AND sql.sql_id (+) = s.sql_id
+ORDER BY state,id1
+  
+  

@@ -1,0 +1,3 @@
+SELECT tablespace_name
+FROM DBA_TABLESPACES
+/
