@@ -5,8 +5,7 @@ SELECT distinct f.group#
 ,      l.archived
 ,      l.thread#
 ,      f.status 
-FROM gv$log l
-,    gv$logfile f 
+FROM v$log l
+,    v$logfile f 
 WHERE l.group# = f.group#  
-  and l.inst_id = f.inst_id
 ORDER BY f.group# 

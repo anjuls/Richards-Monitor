@@ -1,8 +1,6 @@
 SELECT s.qcinst_id "Parent Inst_Id"
-,      s.qcsid "Parent Sid" 
-,      sess.username    
+,      s.qcsid "Parent Sid"     
 ,      sess.sql_id
-,      s.req_degree
 ,      COUNT(*) "# Slaves"
 ,      TRUNC(SUM((NVL(blocks, 0) * par.value) /1024 /1024)) "Sort Usage mb" 
 FROM gv$px_process p
@@ -18,5 +16,5 @@ WHERE p.sid = s.sid
   AND s.inst_id = sess.inst_id 
   AND sess.inst_id = sort.inst_id (+)
   AND s.inst_id = par.inst_id 
-GROUP BY s.qcinst_id,s.qcsid,sess.username,sess.sql_id,s.req_degree
+GROUP BY s.qcinst_id,s.qcsid,sess.sql_id
 /

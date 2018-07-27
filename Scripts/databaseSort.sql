@@ -1,5 +1,4 @@
 SELECT s.sid
-,      s.username
 ,      s.status
 ,      u.tablespace
 ,      u.contents
@@ -16,7 +15,6 @@ WHERE s.sid like ?
   AND s.inst_id = u.inst_id 
   AND s.inst_id = p.inst_id 
 GROUP BY s.sid
-,        s.username
 ,        s.status
 ,        u.tablespace
 ,        u.contents 

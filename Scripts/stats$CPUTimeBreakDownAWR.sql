@@ -1,6 +1,5 @@
-SELECT * 
-FROM (SELECT  /*+ no_merge(s) no_merge(a) */
-             s.stat_name "CPU Time Breakdown"
+SELECT /* RULE */ * 
+FROM (SELECT s.stat_name "CPU Time Breakdown"
       ,      s.stat_val/100 "Time (s)"
       ,      ROUND(((s.stat_val / a.stat_val) *100), 2) "Percentage" 
       FROM (SELECT b.stat_name
@@ -28,8 +27,7 @@ FROM (SELECT  /*+ no_merge(s) no_merge(a) */
               AND b.stat_name = e.stat_name 
               AND b.stat_name IN ('CPU used by this session')) a 
       UNION ALL 
-      SELECT /*+ no_merge(x) no_merge(y) no_merge(z) no_merge(a) */
-             'CPU Other' stat_name
+      SELECT 'CPU Other'stat_name
       ,      (x.stat_val - y.stat_val - z.stat_val)/100 "Time (s)"
       ,      ROUND((((x.stat_val - y.stat_val - z.stat_val) / a.stat_val) *100), 2) 
       FROM (SELECT ROUND((e.value - b.value), 2) stat_val 
