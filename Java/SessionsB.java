@@ -106,7 +106,15 @@ public class SessionsB extends RichButton {
    
     try {     
       if (selection.equals("Session Summary")) {
-        Cursor myCursor = new Cursor("sessionSummary.sql",true);
+   
+        Cursor myCursor;
+        if (ConsoleWindow.getDBVersion() > 12.0) {
+          myCursor = new Cursor("sessionSummary12.sql",true);
+        }
+        else {
+          myCursor = new Cursor("sessionSummary.sql",true);
+        }
+        
         Parameters myPars = new Parameters();
         Boolean filterByRAC = true;
         Boolean filterByUser = true;
@@ -117,11 +125,22 @@ public class SessionsB extends RichButton {
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
-      }
+        Boolean includeContainerName = true;
+        String filterByContainerAlias = "c";
+        Boolean filterByContainerName = true;
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includeRACPredicatePoint,filterByRAC, filterByUser, filterByContainerName);
+ }
       
       if (selection.equals("Sessions")) {
-        Cursor myCursor = new Cursor("sessions.sql",true);
+        Cursor myCursor;
+        if (ConsoleWindow.getDBVersion() > 12.0) {
+          myCursor = new Cursor("sessions12.sql",true);
+        }
+        else {
+           myCursor = new Cursor("sessions.sql",true);
+        }
+
         Parameters myPars = new Parameters();
         Boolean filterByRAC = true;
         Boolean filterByUser = true;
@@ -132,8 +151,12 @@ public class SessionsB extends RichButton {
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
-      }
+        Boolean includeContainerName = true;
+        String filterByContainerAlias = "s";
+        Boolean filterByContainerName = true;
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includeRACPredicatePoint,filterByRAC, filterByUser, filterByContainerName);
+}
       
       if (selection.equals("Sessions - Active")) {
         Cursor myCursor = new Cursor("sessionsActive.sql",true);

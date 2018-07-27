@@ -82,12 +82,15 @@ public class DatabaseSummaryB extends RichButton {
       addItem("Dba Feature Usage Stats");
       addItem("DBA Registry");
     }
-      
-    if (ConsoleWindow.getDBVersion() >= 10.2) {
-      addItem("registry$history");
-    }
     
-    if (ConsoleWindow.getDBVersion() >= 12.0) addItem("Containers");
+
+    if (ConsoleWindow.getDBVersion() >= 10.2 && ConnectWindow.isSysdba()) addItem("registry$history");
+    if (ConsoleWindow.getDBVersion() <= 12.0) addItem("resource limit");
+    if (ConsoleWindow.getDBVersion() >= 12.0 && ConnectWindow.getContainerName().equals("CDB$ROOT")) addItem("Resource Limit");
+    if (ConsoleWindow.getDBVersion() >= 12.0) addItem("Container Summary");
+    if (ConsoleWindow.getDBVersion() >= 12.0 && ConnectWindow.getContainerName().equals("CDB$ROOT")) addItem("CDB Properties");
+
+
     
   }
 
@@ -133,20 +136,45 @@ public class DatabaseSummaryB extends RichButton {
     String selection = selectedOption.toString();
     listFrame.setVisible(false);
     DatabasePanel.setLastAction(selection);    
+    
     try {  
       if (selection.equals("Database Summary")) {
-        Cursor myCursor = new Cursor("databaseSummary.sql",true);
+   
+        Cursor myCursor = new Cursor("instanceSummary.sql",true);
+
         Parameters myPars = new Parameters();
         Boolean filterByRAC = true;
         Boolean filterByUser = false;
         Boolean includeDecode = true;
-        String includeRACPredicatePoint = "default";
+        String includePoint = "default";
         String filterByRACAlias = "i";
         String filterByUserAlias = "none";
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includePoint, filterByRAC, filterByUser);
+      }    
+      
+ 
+      if (selection.equals("Container Summary")) {
+        Cursor myCursor = new Cursor("containerSummary.sql",true);
+
+        Parameters myPars = new Parameters();
+        Boolean filterByRAC = true;
+        Boolean filterByUser = false;
+        Boolean includeDecode = true;
+        String includePoint = "default";
+        Boolean includeContainerName = true;
+        String filterByRACAlias = "i";
+        String filterByUserAlias = "none";
+        String filterByContainerAlias = "c";
+        Boolean filterByContainerName = true;
+        Boolean restrictRows = true;
+        Boolean flip = true;
+        Boolean eggTimer = true;
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includePoint,filterByRAC, filterByUser, filterByContainerName);
       }
       
       if (selection.equals("Database Properties")) {
@@ -161,52 +189,116 @@ public class DatabaseSummaryB extends RichButton {
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
+        
         executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
+      }      
+      
+      if (selection.equals("CDB Properties")) {
+        Cursor myCursor = new Cursor("cdbProperties.sql",true);
+        Parameters myPars = new Parameters();
+        Boolean filterByRAC = false;
+        Boolean filterByUser = false;
+        Boolean includeDecode = false;
+        Boolean includeContainerName = true;
+        String includeRACPredicatePoint = "default";
+        String filterByContainerAlias = "p";
+        Boolean filterByContainerName = true;
+        String filterByRACAlias = "none";
+        String filterByUserAlias = "none";
+        Boolean restrictRows = true;
+        Boolean flip = true;
+        Boolean eggTimer = true;
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includeRACPredicatePoint,filterByRAC, filterByUser, filterByContainerName);
       }
       
       if (selection.equals("Resource Limit")) { 
-        Cursor myCursor = new Cursor("resourceLimit.sql",true);
+        Cursor myCursor;
+        if (ConsoleWindow.getDBVersion() > 12.0) {
+          myCursor = new Cursor("resourceLimit12.sql",true);
+        }
+        else {
+          myCursor = new Cursor("resourceLimit.sql",true);
+        }
+         
         Parameters myPars = new Parameters();
         Boolean filterByRAC = true;
         Boolean filterByUser = false;
         Boolean includeDecode = true;
+        Boolean includeContainerName = true;
         String includeRACPredicatePoint = "default";
         String filterByRACAlias = "r";
         String filterByUserAlias = "none";
+        String filterByContainerAlias = "c";
+        Boolean filterByContainerName = true;
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includeRACPredicatePoint,filterByRAC, filterByUser, filterByContainerName);
       }        
       
       if (selection.equals("High Water Mark Stats")) { 
-        Cursor myCursor = new Cursor("highWaterMarkStats.sql",true);
+        Cursor myCursor;
+        if (ConsoleWindow.getDBVersion() > 12.0) {
+          myCursor = new Cursor("highWaterMarkStats12.sql",true);
+        }
+        else {
+          myCursor = new Cursor("highWaterMarkStats.sql",true);
+        }
+       
         Parameters myPars = new Parameters();
         Boolean filterByRAC = false;
         Boolean filterByUser = false;
         Boolean includeDecode = false;
+        Boolean includeContainerName = true;
         String includeRACPredicatePoint = "default";
+        String filterByContainerAlias = "c";
+        Boolean filterByContainerName = true;
         String filterByRACAlias = "none";
         String filterByUserAlias = "none";
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
+        
+        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includeRACPredicatePoint,filterByRAC, filterByUser, filterByContainerName);
       }      
       
       if (selection.equals("DBA Registry")) {
-        Cursor myCursor = new Cursor("dba_registry",true);
-        Parameters myPars = new Parameters();
-        Boolean filterByRAC = false;
-        Boolean filterByUser = false;
-        Boolean includeDecode = false;
-        String includeRACPredicatePoint = "default";
-        String filterByRACAlias = "none";
-        String filterByUserAlias = "none";
-        Boolean restrictRows = true;
-        Boolean flip = true;
-        Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
+        Cursor myCursor;
+        if (ConsoleWindow.getDBVersion() > 12.0) {
+          myCursor = new Cursor("cdbRegistry.sql",true);
+          
+          Parameters myPars = new Parameters();
+          Boolean filterByRAC = false;
+          Boolean filterByUser = false;
+          Boolean includeDecode = false;
+          Boolean includeContainerName = true;
+          String includeRACPredicatePoint = "default";
+          String filterByContainerAlias = "c";
+          Boolean filterByContainerName = true;
+          String filterByRACAlias = "none";
+          String filterByUserAlias = "none";
+          Boolean restrictRows = true;
+          Boolean flip = true;
+          Boolean eggTimer = true;
+          
+          executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, filterByContainerAlias, includeDecode, includeContainerName, includeRACPredicatePoint,filterByRAC, filterByUser, filterByContainerName);
+        }
+        else {
+          myCursor = new Cursor("dba_registry",true);
+          Parameters myPars = new Parameters();
+          Boolean filterByRAC = false;
+          Boolean filterByUser = false;
+          Boolean includeDecode = false;
+          String includeRACPredicatePoint = "default";
+          String filterByRACAlias = "none";
+          String filterByUserAlias = "none";
+          Boolean restrictRows = true;
+          Boolean flip = true;
+          Boolean eggTimer = true;
+          executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
+        }
       }
 
    
@@ -222,13 +314,21 @@ public class DatabaseSummaryB extends RichButton {
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
+        
         executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
         
       }      
                      
  
       if (selection.equals("Dba Feature Usage Stats")) {
-        Cursor myCursor = new Cursor("dbaFeatureUsage.sql",true);
+        Cursor myCursor;
+        if (ConsoleWindow.getDBVersion() > 12.0) {
+          myCursor = new Cursor("dbaFeatureUsage12.sql",true);
+        }
+        else {
+          myCursor = new Cursor("dbaFeatureUsage.sql",true);
+        }
+        
         Parameters myPars = new Parameters();
         Boolean filterByRAC = false;
         Boolean filterByUser = false;
@@ -239,23 +339,10 @@ public class DatabaseSummaryB extends RichButton {
         Boolean restrictRows = true;
         Boolean flip = true;
         Boolean eggTimer = true;
+        
         executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
       }
 
-        if (selection.equals("Containers")) {
-        Cursor myCursor = new Cursor("v$containers", true);
-        Parameters myPars = new Parameters();
-        Boolean filterByRAC = false;
-        Boolean filterByUser = false;
-        Boolean includeDecode = false;
-        String includeRACPredicatePoint = "default";
-        String filterByRACAlias = "none";
-        String filterByUserAlias = "none";
-        Boolean restrictRows = true;
-        Boolean flip = true;
-        Boolean eggTimer = true;
-        executeDisplayFilterStatement(myCursor, myPars, flip, eggTimer, scrollP, statusBar, showSQL, resultCache, restrictRows, filterByRACAlias, filterByUserAlias, includeDecode, includeRACPredicatePoint, filterByRAC, filterByUser);
-      }
     }
     catch (Exception e) {
       ConsoleWindow.displayError(e,this);

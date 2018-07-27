@@ -61,6 +61,7 @@ public class RichButton extends JButton {
     }
   }
   
+  
   public void executeDisplayFilterStatement(Cursor myCursor
                                             ,Parameters myPars
                                             ,boolean flip
@@ -77,15 +78,59 @@ public class RichButton extends JButton {
                                             ,Boolean filterByRAC
                                             ,Boolean filterByUser) throws Exception {   
     
+    String filterByContainerAlias = "c";
+    boolean includeContainerName = false;
+    boolean filterByContainer = false;
+    
+    executeDisplayFilterStatement(myCursor
+                                  ,myPars
+                                  ,flip
+                                  ,eggTimer
+                                  ,scrollP
+                                  ,statusBar
+                                  ,showSQL
+                                  ,resultCache
+                                  ,restrictRows
+                                  ,filterByRACAlias
+                                  ,filterByUserAlias
+                                  ,filterByContainerAlias
+                                  ,includeDecode
+                                  ,includeContainerName
+                                  ,includePoint
+                                  ,filterByRAC
+                                  ,filterByUser
+                                  ,filterByContainer);
+    
+  }
+  
+  public void executeDisplayFilterStatement(Cursor myCursor
+                                            ,Parameters myPars
+                                            ,boolean flip
+                                            ,boolean eggTimer
+                                            ,JScrollPane scrollP
+                                            ,JLabel statusBar
+                                            ,boolean showSQL
+                                            ,ResultCache resultCache
+                                            ,boolean restrictRows
+                                            ,String filterByRACAlias
+                                            ,String filterByUserAlias
+                                            ,String filterByContainerAlias
+                                            ,boolean includeDecode
+                                            ,boolean includeContainerName
+                                            ,String includePoint
+                                            ,boolean filterByRAC
+                                            ,boolean filterByUser
+                                            ,boolean filterByContainer) throws Exception {   
+    
     // add a predicate to the where clause for each instance
     if (filterByRAC) {
       if (ConsoleWindow.isDbRac()) {
         if (!ConsoleWindow.isOnlyLocalInstanceSelected() && includeDecode)
-          myCursor.includeDecode(filterByRACAlias);
+          myCursor.includeRACDecode(filterByRACAlias);
         if (includePoint.equals("beforeOrderBy")) {
-          myCursor.includePredicateBeforeOrderBy(filterByRACAlias, true);
+          myCursor.includeRACPredicateBeforeOrderBy(filterByRACAlias, true);
         } else {
-          myCursor.includePredicate(filterByRACAlias);
+          myCursor.includeRACPredicate(filterByRACAlias);
         }
       }
     }
@@ -95,6 +140,28 @@ public class RichButton extends JButton {
     if (filterByUser) {
       myCursor.setUsernameFilter(ConsoleWindow.getUsernameFilter());
       myCursor.includeUserFilter(filterByUserAlias);
+    }
+
+    // add a predicate to the where clause for each container
+    if ((ConsoleWindow.getDBVersion() >= 12.0)) {
+      if (filterByContainer) {
+        if (ConsoleWindow.getNumContainers() > 1) {
+          boolean onlyLocalContainerSelected = ConsoleWindow.isOnlyLocalContainerSelected();
+          if (!onlyLocalContainerSelected) {
+            if (includeContainerName) {
+            myCursor.includeContainerDecode(filterByContainerAlias);
+            }
+          }
+          if (includePoint.equals("beforeOrderBy")) {
+            myCursor.includeContainerPredicateBeforeOrderBy(filterByContainerAlias, true);
+          } else {
+            myCursor.includeContainerPredicate(filterByContainerAlias);
+          }
+        }
+      }
+
+      if (filterByContainer && ConsoleWindow.getNumContainers() > 1 && ConsoleWindow.getNumSelectedContainers() > 0)
+        myCursor.setFilterByContainer(true);
     }
 
     myCursor.setFlippable(flip);
@@ -115,17 +182,72 @@ public class RichButton extends JButton {
                                            ,boolean includeDecode
                                            ,String includeRACPredicatePoint
                                            ,Boolean filterByRAC
-                                           ,Boolean filterByUser) throws Exception {   
+                                           ,Boolean filterByUser) throws Exception {
+                                              
+    String filterByContainerAlias = "c";
+    boolean includeContainerName = false;
+    boolean filterByContainer = false;
+    
+    QueryResult myResultSet = executeFilterStatement( myCursor
+                                                     , myPars
+                                                     , flip
+                                                     , eggTimer
+                                                     , resultCache
+                                                     , restrictRows
+                                                     , filterByRACAlias
+                                                     , filterByUserAlias
+                                                     , filterByContainerAlias
+                                                     , includeDecode
+                                                     , includeContainerName
+                                                     , includeRACPredicatePoint
+                                                     , filterByRAC
+                                                     , filterByUser
+                                                     , filterByContainer);
+    
+    return myResultSet;                                                
+  }
+  
+  
+  public QueryResult executeFilterStatement(Cursor myCursor
+                                           ,Parameters myPars
+                                           ,boolean flip
+                                           ,boolean eggTimer
+                                           ,ResultCache resultCache
+                                           ,boolean restrictRows
+                                           ,String filterByRACAlias
+                                           ,String filterByUserAlias
+                                           ,String filterByContainerAlias
+                                           ,boolean includeDecode
+                                           ,boolean includeContainerName
+                                           ,String includePoint
+                                           ,Boolean filterByRAC
+                                           ,Boolean filterByUser
+                                           ,Boolean filterByContainer) throws Exception {   
     
     // add a predicate to the where clause for each instance
     if (filterByRAC) {
       if (ConsoleWindow.isDbRac()) {
         if (!ConsoleWindow.isOnlyLocalInstanceSelected() && includeDecode)
-          myCursor.includeDecode(filterByRACAlias);
-        if (includeRACPredicatePoint.equals("beforeOrderBy")) {
-          myCursor.includePredicateBeforeOrderBy(filterByRACAlias, true);
+          myCursor.includeRACDecode(filterByRACAlias);
+        if (includePoint.equals("beforeOrderBy")) {
+          myCursor.includeRACPredicateBeforeOrderBy(filterByRACAlias, true);
         } else {
-          myCursor.includePredicate(filterByRACAlias);
+          myCursor.includeRACPredicate(filterByRACAlias);
+        }
+      }
+    }    
+    
+    // add a predicate to the where clause for each container
+    if ((ConsoleWindow.getDBVersion() >= 12.0)) {
+      if (filterByContainer) {
+        if (ConsoleWindow.getNumContainers() > 1) {
+          if (ConsoleWindow.isOnlyLocalContainerSelected() && includeContainerName)
+            myCursor.includeContainerDecode(filterByContainerAlias);
+          if (includePoint.equals("beforeOrderBy")) {
+            myCursor.includeContainerPredicateBeforeOrderBy(filterByContainerAlias, true);
+          } else {
+            myCursor.includeContainerPredicate(filterByContainerAlias);
+          }
         }
       }
     }

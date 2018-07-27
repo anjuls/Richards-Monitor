@@ -95,7 +95,7 @@ public class DatabasePanel extends JPanel {
   public CreateScriptB createScriptB = new CreateScriptB("Create Script", databaseSP,  statusBarL, resultCache);
   
   // databaseButtonP combo boxs 
-  String[] databaseSummary = {"Database Summary","Resource Limit"};
+  String[] databaseSummary = {"Database Summary"};
   public DatabaseSummaryB databaseSummaryB = new DatabaseSummaryB(databaseSummary, databaseSP, statusBarL, resultCache);
   String[] streams = {"Apply Errors","Capture Status","Propagation Status"};
   private StreamsB streamsB = new StreamsB(streams, databaseSP, statusBarL, resultCache);

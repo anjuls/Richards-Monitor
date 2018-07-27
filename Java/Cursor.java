@@ -64,10 +64,14 @@ public class Cursor {
   boolean flippable = true;// single row result sets can be flipped 
   boolean debug = false;
   boolean decodeModifiedForRAC = false;
+  boolean decodeModifiedForContainer = false;
   boolean predicateModifedForRAC = false;
+  boolean predicateModifedForContainers = false;
   boolean predicateBeforeOrderByModifiedForRAC = false;
+  boolean predicateBeforeOrderByModifiedForContainer = false;
   boolean cache = false;  // used when recording a queryresult for later playback
   boolean filterByRAC;
+  boolean filterByContainer;
   private String cacheDatabaseName;
   private String cacheInstanceName;
   private String cacheStartSnapshot;      
@@ -377,7 +381,7 @@ public class Cursor {
   /**
    * Insert a decode statement after the 'SELECT' to convert inst_id into instance_name
    */
-  public void includeDecode(String alias) {
+  public void includeRACDecode(String alias) {
     if (!decodeModifiedForRAC) {
       String[][] instances = ConsoleWindow.getSelectedInstances();
       
@@ -433,10 +437,70 @@ public class Cursor {
     decodeModifiedForRAC = true;
   }
   
+  
+  /**
+   * Insert a decode statement after the 'SELECT' to convert inst_id into instance_name
+   */
+  public void includeContainerDecode(String alias) {
+    if (!decodeModifiedForContainer) {
+      String[][] selectedContainers = ConsoleWindow.getSelectedContainers();
+      
+      StringBuffer decode = new StringBuffer("decode(" + alias + ".con_id,");
+      for (int i = 0; i < selectedContainers.length; i++)  {
+        decode.append(selectedContainers[i][0] + ",'" + selectedContainers[i][1] + "'");
+        if ((selectedContainers.length -i) > 1) {
+          decode.append(",");
+        }
+        else {
+          decode.append(",0,'Whole CDB','should never see this')");
+        }
+      }  
+      
+      boolean distinct = false;
+      if (sqlTxtToExecute.toLowerCase().indexOf("select distinct") >= 0) {
+        distinct = true;
+        String tempSQL = "select " + sqlTxtToExecute.substring(15);
+        sqlTxtToExecute = tempSQL;
+      }
+  
+  
+      int commentEndPos = sqlTxtToExecute.indexOf("*/");
+      int selectPos = sqlTxtToExecute.toLowerCase().indexOf("select");
+  
+      if (commentEndPos > -1) {
+        // this statement includes a comment
+        String tempSQL = sqlTxtToExecute.substring(0,commentEndPos +2) + " " + decode + " " + "\"Container Name\", " + sqlTxtToExecute.substring(commentEndPos +2);
+        sqlTxtToExecute = tempSQL;
+      }
+      else {
+        if (selectPos > -1) {
+          String tempSQL;
+          if (distinct) {
+            tempSQL = sqlTxtToExecute.substring(0,selectPos +6) + " distinct " + decode + " " + "\"Container Name\", " + sqlTxtToExecute.substring(selectPos +6);
+          }
+          else {
+            tempSQL = sqlTxtToExecute.substring(0,selectPos +6) + " " + decode + " " + "\"Container Name\", " + sqlTxtToExecute.substring(selectPos +6);
+          }
+          sqlTxtToExecute = tempSQL;
+        }
+      }
+      
+      int groupByClausePos = sqlTxtToExecute.toLowerCase().lastIndexOf("group by");
+      int whereClausePos = sqlTxtToExecute.toLowerCase().lastIndexOf("where");
+  
+      if (groupByClausePos > -1 && (groupByClausePos > whereClausePos)) {
+        String tempSQL = sqlTxtToExecute.substring(0,groupByClausePos +8) + " " + decode + ", " + sqlTxtToExecute.substring(groupByClausePos +8);
+        sqlTxtToExecute = tempSQL;
+      }
+    }
+
+    decodeModifiedForContainer = true;
+  }
+  
   /**
    * Insert a predicate to restrict by inst_id.  This assumes it is inserting into the outer most where clause only.
    */
-  public void includePredicate(String alias) {
+  public void includeRACPredicate(String alias) {
     if (!predicateModifedForRAC) {
       String[][] instances = ConsoleWindow.getSelectedInstances();
   
@@ -478,6 +542,56 @@ public class Cursor {
     }
     
     predicateModifedForRAC = true;
+    if (debug) System.out.println(sqlTxtToExecute);
+  }
+  
+  
+  
+  /**
+   * Insert a predicate to restrict by inst_id.  This assumes it is inserting into the outer most where clause only.
+   */
+  public void includeContainerPredicate(String alias) {
+    if (!predicateModifedForContainers) {
+      String[][] containers = ConsoleWindow.getSelectedContainers();
+  
+      StringBuffer predicate = new StringBuffer( alias + ".con_id in (0,");
+      for (int i = 0; i < containers.length; i++) {
+        predicate.append(containers[i][0]);
+        if ((containers.length - i) > 1) predicate.append(",");
+      }
+      predicate.append(")");
+  
+      int whereClausePos = sqlTxtToExecute.toLowerCase().lastIndexOf("where");
+      int fromClausePos = sqlTxtToExecute.toLowerCase().lastIndexOf("from");
+      int orderByClausePos = sqlTxtToExecute.toLowerCase().lastIndexOf("order by");
+      int groupByClausePos = sqlTxtToExecute.toLowerCase().lastIndexOf("group by");
+      int andPos = sqlTxtToExecute.toLowerCase().lastIndexOf("and ");
+      
+      int insertPos = 0;
+      
+      if (groupByClausePos > 0 && groupByClausePos > whereClausePos) {
+        insertPos = groupByClausePos;
+        if (whereClausePos == -1) predicate.insert(0,"where ");
+        if (whereClausePos > -1) predicate.insert(0,"and ");
+      }
+      
+      if ((orderByClausePos > 0 && orderByClausePos > whereClausePos) && !(groupByClausePos > 0 && groupByClausePos > whereClausePos)) {
+        insertPos = orderByClausePos;
+        if (whereClausePos == -1) predicate.insert(0,"where ");
+        if (whereClausePos > -1) predicate.insert(0,"and ");
+      }
+      
+      if (insertPos == 0) {
+        insertPos = sqlTxtToExecute.length();
+        if (whereClausePos == -1 || (whereClausePos < fromClausePos && andPos < fromClausePos)) predicate.insert(0,"where ");
+        if (whereClausePos > -1 && (whereClausePos > fromClausePos || andPos > fromClausePos)) predicate.insert(0,"and ");
+      }
+      
+      String tempSQL = sqlTxtToExecute.substring(0,insertPos) + " " + predicate + " " + sqlTxtToExecute.substring(insertPos);
+      sqlTxtToExecute = tempSQL;
+    }
+    
+    predicateModifedForContainers = true;
     if (debug) System.out.println(sqlTxtToExecute);
   }
   
@@ -528,7 +642,7 @@ public class Cursor {
   /**
    * Insert a predicate to restrict by inst_id.  This will be inserted immediately prior to the last order by clause
    */
-  public void includePredicateBeforeOrderBy(String alias,boolean includeWhereClause) {
+  public void includeRACPredicateBeforeOrderBy(String alias,boolean includeWhereClause) {
     if (!predicateBeforeOrderByModifiedForRAC) {
       String[][] instances = ConsoleWindow.getSelectedInstances();
   
@@ -556,7 +670,40 @@ public class Cursor {
    if (debug) System.out.println(sqlTxtToExecute);
   }
   
- 
+  
+  
+  /**
+   * Insert a predicate to restrict by inst_id.  This will be inserted immediately prior to the last order by clause
+   */
+  public void includeContainerPredicateBeforeOrderBy(String alias,boolean includeWhereClause) {
+    if (!predicateBeforeOrderByModifiedForContainer) {
+      String[][] containers = ConsoleWindow.getSelectedContainers();
+  
+      StringBuffer predicate = new StringBuffer(alias + ".con_id in (0,");
+      for (int i = 0; i < containers.length; i++) {
+        predicate.append(containers[i][0]);
+        if ((containers.length - i) > 1) predicate.append(",");
+      }
+      predicate.append(")");
+      
+      int insertPos = sqlTxtToExecute.toLowerCase().lastIndexOf("order by");;
+      
+      if (includeWhereClause) { 
+        predicate.insert(0,"where ");
+      }
+      else {
+        predicate.insert(0,"and ");
+      }
+      
+      String tempSQL = sqlTxtToExecute.substring(0,insertPos) + " " + predicate + " " + sqlTxtToExecute.substring(insertPos);
+      sqlTxtToExecute = tempSQL;
+    }
+    
+    predicateBeforeOrderByModifiedForRAC = true;
+   if (debug) System.out.println(sqlTxtToExecute);
+  }
+  
+  
   public boolean isModifiedForRAC() {
     if (decodeModifiedForRAC || predicateModifedForRAC || predicateBeforeOrderByModifiedForRAC) {
       return true;
@@ -653,5 +800,9 @@ public class Cursor {
   
   public void setUsernameFilter(String username) {
     usernameFilter = username;
+  }
+  
+  public void setFilterByContainer(boolean filter) {
+    filterByContainer = filter;
   }
 }

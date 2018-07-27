@@ -90,7 +90,7 @@ public class ConsoleWindow_AboutBoxPanel1 extends JPanel  {
     labelTitle.setText("RichMon: Richard's Monitoring Tool for Oracle                                                                 Version: " + ConsoleWindow.getRichMonVersion());
     labelAuthor.setText("Website: www.RichMon4Oracle.com");
     labelAuthor2.setText("Email: support@richmon4oracle.com");
-    labelCopyright.setText("Copyright 2003 - 2008 Richard Wright                                                    ");
+    labelCopyright.setText("Copyright 2003 - 2018 Richard Wright                                                    ");
     labelCompany.setText("RichMon is still in development, please report bugs, comments and enhancement requests by email.");
     labelBlog.setText("Checkout \"http://www.richmon4oracle.com\" and \"http://richmon.blogspot.com\" for the latest news and updates");
     labelJFreeChart.setText("All charts are produced using JFreeChart, available from \"http://www.jfree.org/jfreechart\" under the GNU Lesser General Public Licence.");

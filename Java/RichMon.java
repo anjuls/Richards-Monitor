@@ -24,7 +24,6 @@
  * 14/01/08 Richard Wright Added debug boolean
  */
 
-// just a comment to allow me to add this to 17.83 branch
 
 package RichMon;
 

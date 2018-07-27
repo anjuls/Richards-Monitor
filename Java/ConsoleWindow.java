@@ -244,6 +244,7 @@
  * 24/10/16 Richard Wright changed thisVersion to 17.81
  * 25/10/16 Richard Wright added exadata boolean and associated functionality
  * 08/12/17 Richard Wright changed thisVersion to 17.82
+ * 09/02/18 Richard Wright changed thisVersion to 18.00 - Modify to make better use of 12c CDBs etc
  */
 
 
@@ -356,7 +357,7 @@ public class ConsoleWindow extends JFrame  {
   Dimension prefSizeL = new Dimension(70,25);   // used by labels
   Dimension prefSizeL2 = new Dimension(100,25); // used by labels
   private static boolean sqlPlan = true;        // should execution plan come from v$sql_plan
-  private static String thisVersion = "17.81";  // the version of RichMon
+  private static String thisVersion = "18.00";  // the version of RichMon
   static int numScratchPanelsAdded = 0;              // the number of scratch panels that have been added
   static int numScratchPanelsRemoved = 0;
   static int numScratchLabels=0;
@@ -369,9 +370,12 @@ public class ConsoleWindow extends JFrame  {
   private static String currentSchema = "";      // used in alter session set current schema on session & scratch panels
   private JFrame listFrame;
   private static boolean racDb = false;
-  private static boolean onlyLocalInstanceSelected = true;
+  private static boolean onlyLocalInstanceSelected = true;  
+  private static boolean onlyLocalContainerSelected = true;
   private static String[][] allInstances;
   private static String[][] selectedInstances;    // stores the inst_id of selected instances in the instances menu
+  private static String[][] allContainers;
+  private static String[][] selectedContainers;    // stores the con_id of selected instances in the instances menu
   private static int mySid=0;                     // the sid of this database session (only populated for 10g and above by the session panels)
   private static String databaseName;
   private static long databaseId;                 // inst_id of the instance initially connected too
@@ -379,6 +383,9 @@ public class ConsoleWindow extends JFrame  {
   private static String usernameFilter;           // username to filter by when applicable
   private static Boolean filteringByUsername = false;
   private static boolean exadata = false;
+  private static boolean isCDB = false;
+  
+  
 
   /**
    * Constructor
@@ -508,7 +515,6 @@ public class ConsoleWindow extends JFrame  {
 
     customize.add(menuAWRStatspack);
     customize.add(editProperties);
-//    customize.add(waitSummarySessions);
     customize.add(enableReFormatSQL);
     customize.add(flipSingleRowOutput);
     customize.add(breakOutChartsTabsFrame);
@@ -611,24 +617,6 @@ public class ConsoleWindow extends JFrame  {
     });
     
     
-/*
-    playbackMenu.add(chartPlayback);
-    playbackMenu.add(overviewPlayback);
-
-    chartPlayback.addActionListener(new ActionListener() {
-        public void actionPerformed(ActionEvent ae) {
-          chartPlayback_ActionPerformed();
-        }
-      });
-
-    overviewPlayback.addActionListener(new ActionListener() {
-        public void actionPerformed(ActionEvent ae) {
-          overviewPlayback_ActionPerformed();
-        }
-      });
-
-    menuBar.add(playbackMenu);
-*/
     help.add(helpAbout);
     help.add(openBlog);
     menuBar.add(help);
@@ -1964,6 +1952,15 @@ public class ConsoleWindow extends JFrame  {
           }
         }
 
+        filterMenu.add(filterByUsername);
+        filterByUsername.addActionListener(new ActionListener() {
+                  public void actionPerformed(ActionEvent ae) {
+                    askForUsernameFilter();
+                  }
+                });
+        
+        filterMenu.addSeparator();
+        
         filterMenu.add(selectAllInstancesMI);
         selectAllInstancesMI.addActionListener(new ActionListener() {
                   public void actionPerformed(ActionEvent ae) {
@@ -1978,16 +1975,9 @@ public class ConsoleWindow extends JFrame  {
                   }
                 });
 
-        filterMenu.add(filterByUsername);
-        filterByUsername.addActionListener(new ActionListener() {
-                  public void actionPerformed(ActionEvent ae) {
-                    askForUsernameFilter();
-                  }
-                });
 
         for (int i = 0; i < myResult.getNumRows(); i++)  {
           final JCheckBoxMenuItem myMenuItem = new JCheckBoxMenuItem(allInstances[i][1]);
-          if (debug) System.out.println(allInstances[i][1].toLowerCase() + " : " + instanceName.toLowerCase());
           if (allInstances[i][1].toLowerCase().equals(instanceName.toLowerCase())) {
             myMenuItem.setSelected(true);
             allInstances[i][2] = "selected";
@@ -2001,11 +1991,33 @@ public class ConsoleWindow extends JFrame  {
           if (myResult.getNumRows() ==1) myMenuItem.setEnabled(false);
           filterMenu.add(myMenuItem);
         }
+        
+        filterMenu.addSeparator();
+        
+        // add containers to the menu
+        allContainers = ConnectWindow.getContainers();
+        
+        for (int i=0; i < allContainers.length; i++) {
+          final JCheckBoxMenuItem myMenuItem = new JCheckBoxMenuItem(allContainers[i][1]);
+          if (allContainers[i][1].equals(ConnectWindow.getContainerName())) {
+            myMenuItem.setSelected(true);
+          }
+          
+          myMenuItem.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent ae) {
+                      pdbMenu_ActionPerformed(ae, myMenuItem.getText());
+                    }
+                  });
 
+          if (allContainers.length == 1) myMenuItem.setEnabled(false);
+          filterMenu.add(myMenuItem);
+          
+ 
+        }
         menuBar.add(filterMenu,3);
         
 
-        findSelectedInstances();
+        findSelectedContainers();
       }
       catch (Exception e) {
         ConsoleWindow.displayError(e,this,"Error obtaining a list of instances for this db.");
@@ -2046,6 +2058,22 @@ public class ConsoleWindow extends JFrame  {
       }
     }
   }
+  private void pdbMenu_ActionPerformed(ActionEvent ae, String containerName) {
+    // invert the selected status of this instance name in the instances array
+    for (int i = 0; i < allContainers.length; i++) {
+      if (allContainers[i][1].equals(containerName)) {
+        if (allContainers[i][2].equals("selected")) {
+          allContainers[i][2] = "not selected";
+        }
+        else {
+          allContainers[i][2] = "selected";
+        }
+      }
+    }
+
+    findSelectedContainers();
+
+  }
 
   public static boolean isDbRac() {
     return racDb;
@@ -2083,6 +2111,10 @@ public class ConsoleWindow extends JFrame  {
 
   public static boolean isOnlyLocalInstanceSelected() {
     return onlyLocalInstanceSelected;
+  } 
+  
+  public static boolean isOnlyLocalContainerSelected() {
+    return onlyLocalContainerSelected;
   }
 
   private void selectAllInstancesOnMenu(JMenu instanceMenu) {
@@ -2333,6 +2365,48 @@ public class ConsoleWindow extends JFrame  {
   
   public static Boolean isFilteringByUsername() {
     return filteringByUsername;
+  }
+
+  public static void setCDB(Boolean cdb) {
+    isCDB = cdb;
+  }
+  
+  public static boolean isCDB() {
+    return isCDB;
+  }
+  
+  public static void findSelectedContainers() {
+    // find number of selected instances
+    int selected = 0;
+    for (int i = 0; i < allContainers.length; i++) {
+      if (allContainers[i][2].equals("selected")) selected++;
+    }
+
+    // create an array of just the selected instances
+    selectedContainers = new String[selected][3];
+    int j = 0;
+    onlyLocalContainerSelected = true;
+    for (int i = 0; i < allContainers.length; i++) {
+      if (allContainers[i][2].equals("selected")) {
+        selectedContainers[j][0] = allContainers[i][0];
+        selectedContainers[j][1] = allContainers[i][1];
+        selectedContainers[j][2] = allContainers[i][2];
+        j++;
+        if (!allContainers[i][1].toLowerCase().equals(ConnectWindow.getContainerName().toLowerCase())) onlyLocalContainerSelected = false;
+      }
+    }
+  }
+  
+  public static String[][] getSelectedContainers() {
+    return selectedContainers;
+  }
+  
+  public static int getNumSelectedContainers() {
+    return selectedContainers.length;
+  }
+  
+  public static int getNumContainers() {
+    return allContainers.length;
   }
 
 }

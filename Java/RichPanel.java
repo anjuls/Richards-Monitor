@@ -23,11 +23,11 @@ public class RichPanel extends JPanel {
     if (filterByRAC) {
       if (ConsoleWindow.isDbRac()) {
         if (!ConsoleWindow.isOnlyLocalInstanceSelected() && includeDecode)
-          myCursor.includeDecode(filterByRACAlias);
+          myCursor.includeRACDecode(filterByRACAlias);
         if (includeRACPredicatePoint.equals("beforeOrderBy")) {
-          myCursor.includePredicateBeforeOrderBy(filterByRACAlias, true);
+          myCursor.includeRACPredicateBeforeOrderBy(filterByRACAlias, true);
         } else {
-          myCursor.includePredicate(filterByRACAlias);
+          myCursor.includeRACPredicate(filterByRACAlias);
         }
       }
     }

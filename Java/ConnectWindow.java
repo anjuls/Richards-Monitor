@@ -126,6 +126,7 @@
  * 24/10/16 Richard Wright No longer attempts to hide the RichMonBase.txt file
  * 28/11/17 Richard Wright Stopping setting locale when parameter file contains set_locale=false  (because it stopped connections at Thomas Cook)
  * 28/11/17 Richard Wright No longer disable AWR and SQL panels when avoid_awr is specified because these panels will use statspack instead
+ * 14/02/18 Richard Wright Get the container name when the connection is established
  */ 
 
 
@@ -260,6 +261,7 @@ public class ConnectWindow extends JFrame  {
   static boolean linux = false;
   private static String serviceNameOrSID = "";
   private static boolean connectInProgress = false;
+  private static String containerName;
 
 
 
@@ -465,8 +467,7 @@ public class ConnectWindow extends JFrame  {
    private void jbInit() throws Exception {
      this.getContentPane().setLayout(new BorderLayout());
      this.setTitle("Connect ...");
-     //this.setSize(new Dimension(1300, 460));
-     this.setSize(new Dimension(750,350));
+     this.setSize(new Dimension(1300, 460));
      this.getRootPane().setDefaultButton(connectB);
 
      // titleP panel
@@ -797,6 +798,8 @@ public class ConnectWindow extends JFrame  {
 
         if (connected) {
           Double dbVersion = retrieveDBVersionFromDB();
+
+          if (dbVersion > 12.0) containerName = getContainerNameFromDB();
           consoleWindow = new ConsoleWindow(this, dbVersion);
           consoleWindow.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
           consoleWindow.addWindowListener(new WindowAdapter()
@@ -811,6 +814,9 @@ public class ConnectWindow extends JFrame  {
                   }
                 }
             });
+          
+          if (dbVersion > 12.0) if (containerName.equals("CDB$ROOT")) consoleWindow.setCDB(true);
+          
           maximizeConsoleWindow();
           licenseCheck();
           consoleWindow.setVisible(true);
@@ -819,7 +825,13 @@ public class ConnectWindow extends JFrame  {
           ServiceNames.save(serviceNameOrSID, this);
           if (exampleDB) serviceNameOrSID = "exampleDB";
           consoleWindow.setInstanceName();
-          consoleWindow.setTitle(ConsoleWindow.getInstanceName() + "@" + consoleWindow.getHostName() + " :  RichMon - Richards Monitoring Tool For Oracle");
+          
+          if (dbVersion > 12.0) {
+            consoleWindow.setTitle("Container: " + containerName + "  Instance: " + ConsoleWindow.getInstanceName() + "  Host: " + consoleWindow.getHostName() + " :  RichMon - Richards Monitoring Tool For Oracle");
+          }
+          else {
+            consoleWindow.setTitle("Instance: " + ConsoleWindow.getInstanceName() + "  Host: " + consoleWindow.getHostName() + " :  RichMon - Richards Monitoring Tool For Oracle");
+          }
           consoleWindow.setModule();
 
           this.setVisible(false);
@@ -835,7 +847,7 @@ public class ConnectWindow extends JFrame  {
           SchemaViewerPanel.runPopulateUserNames();
 
 
-//          consoleWindow.retrieveDBVersionFromDB();
+
           if (ConsoleWindow.getDBVersion() == 9.2) getCursorSharing();
           if (ConsoleWindow.getDBVersion() < 9) ConsoleWindow.removeStatspackAWRPanel();
           consoleWindow.removeAllSessionPanels();
@@ -843,8 +855,6 @@ public class ConnectWindow extends JFrame  {
 
           if (ConsoleWindow.getDBVersion() >= 10.0) consoleWindow.setStatspackPanelNameAWR();
           StatspackAWRPanel.removeAllInstancePanels();
-
-          //readCurrentVersionFile();
 
           consoleWindow.checkRAC();
           getCursorCacheSize();
@@ -1860,4 +1870,52 @@ public class ConnectWindow extends JFrame  {
     
     return dbVersion;
   }
+  
+  private String getContainerNameFromDB() {
+    String containerName = "not Found";
+    try {
+      String cursorId = "getCurrentContainerName.sql";
+      Cursor myCursor = new Cursor(cursorId, true);
+
+      boolean flip = false;
+      boolean eggTimer = false;
+      QueryResult myResult = ExecuteDisplay.execute(myCursor, flip, eggTimer, null);
+//      String resultSetRow = myResult.getResultSetRow(0).firstElement().toString();
+      String resultSetRow = myResult.getResultSetRow(0).elementAt(0).toString();
+      containerName = resultSetRow;
+
+    } catch (Exception e) {
+      // do something here
+    }
+    
+    return containerName;
+  }
+  
+  public static String[][] getContainers() {
+    String[][] containers = new String[1][1];
+      
+    try {
+      String cursorId = "getContainerNames.sql";
+      Cursor myCursor = new Cursor(cursorId, true);
+
+      boolean flip = false;
+      boolean eggTimer = false;
+      QueryResult myResult = ExecuteDisplay.execute(myCursor, flip, eggTimer, null);
+      containers = myResult.getResultSetAsStringArray();
+      
+      for (int i=0; i < containers.length; i++) {
+        if (containers[i][1].equals(containerName)) containers[i][2] = "selected";
+      }
+
+    } catch (Exception e) {
+      // do something here
+    }
+    
+    return containers;
+  }
+  
+  public static String getContainerName() {
+    return containerName;
+  }
+
 }
